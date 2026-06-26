@@ -143,7 +143,7 @@
                         <div class="position-relative d-none d-sm-flex align-items-center justify-content-center" style="width: 54px; height: 54px;">
                             <svg class="w-100 h-100" viewBox="0 0 36 36">
                                 <path style="stroke: var(--sc-border); stroke-width: 3.5; fill: none;" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                <path id="compliance-svg-ring" style="stroke: #ca8a04; stroke-width: 3.5; stroke-dasharray: 0, 100; stroke-linecap: round; fill: none; transition: stroke-dasharray 0.8s ease;" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path id="compliance-svg-ring" style="stroke: var(--sc-warning); stroke-width: 3.5; stroke-dasharray: 0, 100; stroke-linecap: round; fill: none; transition: stroke-dasharray 0.8s ease;" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                             </svg>
                         </div>
                     </div>
@@ -174,7 +174,7 @@
                     <button class="btn active" data-filter="all">Semua</button>
                     <button class="btn" data-filter="bersih">Bersih</button>
                     <button class="btn" data-filter="perlu dibersihkan">Perlu Dibersihkan</button>
-                    <button class="btn" data-filter="buruk">Buruk</button>
+                    <button class="btn" data-filter="buruk">Perlu Diperbaiki</button>
                 </div>
             </div>
 
@@ -230,7 +230,7 @@
                             <span class="material-symbols-outlined" style="font-size:1.5rem;">monitoring</span>
                         </div>
                         <h5 class="fw-bold mt-3 mb-2" style="color:var(--sc-text);">2. Analisis Otomatis</h5>
-                        <p class="small mb-0" style="color:var(--sc-muted);">Sistem secara otomatis menganalisis data inspeksi dan menentukan status kelayakan: Bersih, Perlu Dibersihkan, atau Buruk.</p>
+                        <p class="small mb-0" style="color:var(--sc-muted);">Sistem secara otomatis menganalisis data inspeksi dan menentukan status kelayakan: Bersih, Perlu Dibersihkan, atau Perlu Diperbaiki.</p>
                     </div>
                 </div>
                 <div class="col-md-4">

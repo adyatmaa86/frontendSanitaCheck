@@ -73,7 +73,8 @@
                         <option value="" style="background: var(--sc-surface); color: var(--sc-text);">Semua Status</option>
                         <option value="bersih" style="background: var(--sc-surface); color: var(--sc-text);">Bersih</option>
                         <option value="perlu dibersihkan" style="background: var(--sc-surface); color: var(--sc-text);">Perlu Dibersihkan</option>
-                        <option value="buruk" style="background: var(--sc-surface); color: var(--sc-text);">Buruk</option>
+                        <option value="buruk" style="background: var(--sc-surface); color: var(--sc-text);">Perlu Diperbaiki</option>
+                        <option value="belum_inspeksi" style="background: var(--sc-surface); color: var(--sc-text);">Belum Inspeksi</option>
                     </select>
                 </div>
             </div>

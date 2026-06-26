@@ -74,10 +74,14 @@
 
                 <!-- Report Action Button -->
                 <div id="report-action-container" class="d-none pt-2 border-top d-flex justify-content-end" style="border-color: var(--sc-border) !important;">
-                    <a id="report-wa-btn" href="#" target="_blank" class="btn btn-sm d-inline-flex align-items-center fw-bold px-3 py-2 rounded-3 text-danger bg-danger bg-opacity-10 border-0" style="font-size: 0.8rem; gap: 0.375rem;">
-                        <span class="material-symbols-outlined" style="font-size: 1.15rem; margin-right: 4px;">chat</span>
-                        Laporkan Kondisi Kotor/Rusak ke Petugas
-                    </a>
+                    <div class="dropdown">
+                        <button id="report-wa-btn" class="btn btn-sm d-inline-flex align-items-center fw-bold px-3 py-2 rounded-3 text-danger bg-danger bg-opacity-10 border-0 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.8rem; gap: 0.375rem;">
+                            <span class="material-symbols-outlined" style="font-size: 1.15rem;">chat</span>
+                            Laporkan ke Petugas
+                        </button>
+                        <ul id="report-wa-dropdown" class="dropdown-menu dropdown-menu-end shadow-sm rounded-3 border" style="min-width: 200px;">
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>

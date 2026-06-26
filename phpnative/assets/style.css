@@ -641,9 +641,6 @@ main {
     50% { transform: translateY(-8px); }
 }
 
-/* Facility filter hidden state */
-.fac-col[data-status].d-none { display: none !important; }
-
 .fac-list-item {
     transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s !important;
 }

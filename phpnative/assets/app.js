@@ -82,9 +82,35 @@ let homeFacilities = [];
 let currentHomeIndex = 0;
 
 function filterHomeFacilities(status) {
-    if (!homeFacilities.length) return;
     currentHomeIndex = 0;
-    renderHomeFacilities(homeFacilities, status);
+    if (status === 'all') {
+        renderHomeFacilities(homeFacilities);
+        return;
+    }
+    const grid = document.getElementById('facilities-grid');
+    if (!grid) return;
+    grid.innerHTML = `
+        <div class="col-12 text-center py-5 my-3">
+            <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem; border-width: 0.25em;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="mt-3 text-muted small">Memuat data fasilitas dengan status "${status}"...</div>
+        </div>
+    `;
+    fetchWithTimeout(`${API_BASE_URL}/fasilitas/status/${encodeURIComponent(status)}`)
+        .then(res => {
+            if (!res.ok) throw new Error('Gagal mengambil data');
+            return res.json();
+        })
+        .then(response => {
+            if (response.status === 'success') {
+                renderHomeFacilities(response.data);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            renderHomeFacilities([]);
+        });
 }
 
 function loadHomePage() {
@@ -119,16 +145,11 @@ function loadHomePage() {
         });
 }
 
-function renderHomeFacilities(facilities, filterStatus = 'all') {
+function renderHomeFacilities(facilities) {
     const grid = document.getElementById('facilities-grid');
     grid.innerHTML = '';
 
-    let list = facilities;
-    if (filterStatus !== 'all') {
-        list = facilities.filter(f => f.cleanliness_status === filterStatus);
-    }
-
-    const itemsToShow = list.slice(0, 3);
+    const itemsToShow = facilities.slice(0, 3);
 
     itemsToShow.forEach((f, idx) => {
         let statusBadge = '';
@@ -136,8 +157,10 @@ function renderHomeFacilities(facilities, filterStatus = 'all') {
             statusBadge = `<span class="position-absolute top-0 end-0 m-3 sc-badge clean"><span class="material-symbols-outlined" style="font-size: 16px;">check_circle</span> Bersih</span>`;
         } else if (f.cleanliness_status === 'perlu dibersihkan') {
             statusBadge = `<span class="position-absolute top-0 end-0 m-3 sc-badge attention"><span class="material-symbols-outlined" style="font-size: 16px;">warning</span> Perlu Dibersihkan</span>`;
+        } else if (f.cleanliness_status === 'belum_inspeksi') {
+            statusBadge = `<span class="position-absolute top-0 end-0 m-3 sc-badge" style="background:#f1f5f9;color:#64748b;font-weight:600;border:1px solid #cbd5e1 !important;"><span class="material-symbols-outlined" style="font-size: 16px;">help</span> Belum Inspeksi</span>`;
         } else {
-            statusBadge = `<span class="position-absolute top-0 end-0 m-3 sc-badge poor"><span class="material-symbols-outlined" style="font-size: 16px;">error</span> Buruk</span>`;
+            statusBadge = `<span class="position-absolute top-0 end-0 m-3 sc-badge poor"><span class="material-symbols-outlined" style="font-size: 16px;">error</span> Perlu Diperbaiki</span>`;
         }
 
         const latestDate = f.latest_inspection ? new Date(f.latest_inspection.tanggal_inspeksi).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'Belum pernah';
@@ -186,12 +209,9 @@ function renderHomeFacilities(facilities, filterStatus = 'all') {
     }
 }
 
-let _swipeInitialized = false;
-
 function setupHomeSwipe() {
-    if (_swipeInitialized) return;
     const grid = document.getElementById('facilities-grid');
-    if (!grid) return;
+    if (!grid || grid._touchAttached) return;
 
     let startX = 0;
     let startY = 0;
@@ -236,7 +256,23 @@ function setupHomeSwipe() {
         isSwiping = false;
     }, { passive: true });
 
-    _swipeInitialized = true;
+    grid._touchAttached = true;
+}
+
+function handleSlidePrev() {
+    const cards = document.querySelectorAll('.home-fac-col');
+    if (cards.length <= 1) return;
+    cards[currentHomeIndex].classList.remove('active');
+    currentHomeIndex = (currentHomeIndex - 1 + cards.length) % cards.length;
+    cards[currentHomeIndex].classList.add('active');
+}
+
+function handleSlideNext() {
+    const cards = document.querySelectorAll('.home-fac-col');
+    if (cards.length <= 1) return;
+    cards[currentHomeIndex].classList.remove('active');
+    currentHomeIndex = (currentHomeIndex + 1) % cards.length;
+    cards[currentHomeIndex].classList.add('active');
 }
 
 function setupHomeSliderControls(count) {
@@ -244,27 +280,13 @@ function setupHomeSliderControls(count) {
     const nextBtn = document.getElementById('next-facility');
     if (!prevBtn || !nextBtn) return;
 
-    // Remove old listeners
-    const newPrevBtn = prevBtn.cloneNode(true);
-    const newNextBtn = nextBtn.cloneNode(true);
-    prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
-    nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+    if (prevBtn._slideAttached) return;
 
-    newPrevBtn.addEventListener('click', () => {
-        const cards = document.querySelectorAll('.home-fac-col');
-        if (cards.length <= 1) return;
-        cards[currentHomeIndex].classList.remove('active');
-        currentHomeIndex = (currentHomeIndex - 1 + cards.length) % cards.length;
-        cards[currentHomeIndex].classList.add('active');
-    });
+    prevBtn.addEventListener('click', handleSlidePrev);
+    nextBtn.addEventListener('click', handleSlideNext);
 
-    newNextBtn.addEventListener('click', () => {
-        const cards = document.querySelectorAll('.home-fac-col');
-        if (cards.length <= 1) return;
-        cards[currentHomeIndex].classList.remove('active');
-        currentHomeIndex = (currentHomeIndex + 1) % cards.length;
-        cards[currentHomeIndex].classList.add('active');
-    });
+    prevBtn._slideAttached = true;
+    nextBtn._slideAttached = true;
 }
 
 function calculateHomeStats(facilities) {
@@ -386,8 +408,10 @@ function renderFacilitiesList(list) {
             statusBadge = `<span class="sc-badge clean"><span class="bg-success rounded-circle" style="width: 6px; height: 6px;"></span> Bersih</span>`;
         } else if (f.cleanliness_status === 'perlu dibersihkan') {
             statusBadge = `<span class="sc-badge attention"><span class="bg-warning rounded-circle" style="width: 6px; height: 6px;"></span> Perlu Dibersihkan</span>`;
+        } else if (f.cleanliness_status === 'belum_inspeksi') {
+            statusBadge = `<span class="sc-badge" style="background:#f1f5f9;color:#64748b;font-weight:600;border:1px solid #cbd5e1 !important;"><span class="bg-secondary rounded-circle" style="width: 6px; height: 6px; display:inline-block; margin-right: 4px;"></span> Belum Inspeksi</span>`;
         } else {
-            statusBadge = `<span class="sc-badge poor"><span class="bg-danger rounded-circle" style="width: 6px; height: 6px;"></span> Buruk</span>`;
+            statusBadge = `<span class="sc-badge poor"><span class="bg-danger rounded-circle" style="width: 6px; height: 6px;"></span> Perlu Diperbaiki</span>`;
         }
 
         const laravelDomain = API_BASE_URL.replace(/\/api$/, '');
@@ -605,7 +629,7 @@ function handleAcInput() {
     }
 
     const matches = data.filter(f =>
-        f.nama_fasilitas.toLowerCase().startsWith(query)
+        f.nama_fasilitas.toLowerCase().includes(query)
     ).slice(0, 8);
 
     if (!matches.length) {
@@ -635,9 +659,12 @@ function renderAcDropdown(items) {
         } else if (f.cleanliness_status === 'perlu dibersihkan') {
             badgeClass += ' sc-badge attention';
             badgeText = 'Perlu Dibersihkan';
+        } else if (f.cleanliness_status === 'belum_inspeksi') {
+            badgeClass += ' border';
+            badgeText = 'Belum Inspeksi';
         } else {
             badgeClass += ' sc-badge poor';
-            badgeText = 'Buruk';
+            badgeText = 'Perlu Diperbaiki';
         }
 
         return `
@@ -724,39 +751,101 @@ function loadDetailPage() {
                 renderHealthRecommendation(response.facility.cleanliness_status, response.data[0]);
             } else {
                 console.error('Fasilitas tidak ditemukan.');
+                showDetailError('Fasilitas tidak ditemukan atau telah dihapus.');
             }
         })
         .catch(err => {
             console.error(err);
+            showDetailError('Gagal memuat data. Periksa koneksi server.');
         });
+}
+
+function showDetailError(msg) {
+    const container = document.getElementById('detail-container');
+    if (!container) return;
+    container.innerHTML = `
+        <a href="facilities.php" class="d-inline-flex align-items-center gap-2 fw-bold text-decoration-none mb-4" style="color: var(--sc-primary); font-size: 0.875rem;">
+            <span class="material-symbols-outlined" style="font-size: 1.1rem;">arrow_back</span>
+            Kembali ke Daftar
+        </a>
+        <div class="p-5 text-center rounded-4 border" style="background: var(--sc-surface); border-color: var(--sc-border) !important; color: var(--sc-muted);">
+            <span class="material-symbols-outlined" style="font-size: 3rem; opacity: 0.4;">error</span>
+            <div class="mt-3 fw-bold" style="color: var(--sc-text);">${msg}</div>
+            <a href="facilities.php" class="btn btn-sc-primary mt-4 d-inline-flex align-items-center gap-2" style="text-decoration: none;">
+                <span class="material-symbols-outlined" style="font-size: 1rem;">arrow_back</span> Kembali ke Daftar
+            </a>
+        </div>
+    `;
 }
 
 function renderDetailHeader(fac) {
     safeSetText('detail-facility-name', fac.nama_fasilitas);
-    safeSetText('detail-facility-meta', `${fac.jenis_fasilitas} • ${fac.lokasi} • Petugas: ${fac.nama_petugas || 'Tidak ada'}`);
+    let petugasNames = fac.nama_petugas || '';
+    if (fac.petugas_list && fac.petugas_list.length > 0) {
+        petugasNames = fac.petugas_list.map(function(p) { return p.nama; }).join(', ');
+    } else if (!petugasNames) {
+        petugasNames = 'Tidak ada';
+    }
+    safeSetText('detail-facility-meta', `${fac.jenis_fasilitas} • ${fac.lokasi} • Petugas: ${petugasNames}`);
 
-    // WA Report button
+    // WA Report button - dropdown for multiple officers
     const reportContainer = document.getElementById('report-action-container');
-    const waBtn = document.getElementById('report-wa-btn');
-    if (reportContainer && waBtn) {
-        const petugas = fac.nama_petugas || 'Petugas Kebersihan';
+    const waDropdown = document.getElementById('report-wa-dropdown');
+    if (reportContainer && waDropdown) {
         const namafaskes = fac.nama_fasilitas;
         const lokasi = fac.lokasi;
-        const msg = `Halo *${petugas}*, saya ingin melaporkan kondisi kebersihan/sanitasi di fasilitas *${namafaskes}* (${lokasi}). Harap segera dicek dan ditindaklanjuti. Terima kasih.`;
-        
-        let phone = fac.no_telp_petugas || '';
-        // Clean phone number: remove all non-digits except +
-        phone = phone.replace(/[^0-9+]/g, '');
-        if (phone.startsWith('0')) {
-            phone = '62' + phone.substring(1);
-        } else if (phone.startsWith('+')) {
-            phone = phone.substring(1);
+
+        // Collect all petugas from petugas_list (API now returns this array)
+        let allPetugas = fac.petugas_list || [];
+        // Fallback: if no petugas_list, use single petugas data
+        if (allPetugas.length === 0 && fac.nama_petugas) {
+            allPetugas = [{ nama: fac.nama_petugas, no_telp: fac.no_telp_petugas || '' }];
         }
-        
-        if (phone) {
-            waBtn.href = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+
+        waDropdown.innerHTML = '';
+
+        if (allPetugas.length === 0) {
+            // No petugas at all - show a single generic option
+            const msg = `Halo Petugas Kebersihan, saya ingin melaporkan kondisi kebersihan/sanitasi di fasilitas *${namafaskes}* (${lokasi}). Harap segera dicek dan ditindaklanjuti. Terima kasih.`;
+            const li = document.createElement('li');
+            li.innerHTML = `<a class="dropdown-item d-flex align-items-center gap-2 py-2" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" style="font-size: 0.82rem;">
+                <span class="material-symbols-outlined text-danger" style="font-size: 1.1rem;">chat</span> Laporkan (No. Telepon Tidak Tersedia)
+            </a>`;
+            waDropdown.appendChild(li);
         } else {
-            waBtn.href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+            allPetugas.forEach(function(p) {
+                let phone = p.no_telp || '';
+                phone = phone.replace(/[^0-9+]/g, '');
+                if (phone.startsWith('0')) {
+                    phone = '62' + phone.substring(1);
+                } else if (phone.startsWith('+')) {
+                    phone = phone.substring(1);
+                }
+
+                const nama = p.nama || 'Petugas';
+                const msg = `Halo *${nama}*, saya ingin melaporkan kondisi kebersihan/sanitasi di fasilitas *${namafaskes}* (${lokasi}). Harap segera dicek dan ditindaklanjuti. Terima kasih.`;
+                
+                const isWorking = p.status_pengerjaan === 'aktif';
+                const itemClass = isWorking 
+                    ? 'dropdown-item d-flex align-items-center gap-2 py-2 text-muted disabled' 
+                    : 'dropdown-item d-flex align-items-center gap-2 py-2';
+                const waHref = isWorking ? 'javascript:void(0)' : (phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`);
+                const targetAttr = isWorking ? '' : 'target="_blank"';
+                const styleAttr = isWorking ? 'font-size: 0.82rem; pointer-events: none; opacity: 0.6;' : 'font-size: 0.82rem;';
+                
+                const li = document.createElement('li');
+                li.innerHTML = `<a class="${itemClass}" href="${waHref}" ${targetAttr} style="${styleAttr}">
+                    <span class="material-symbols-outlined ${isWorking ? 'text-secondary' : 'text-danger'}" style="font-size: 1.1rem;">chat</span>
+                    <div class="w-100">
+                        <div class="fw-bold d-flex justify-content-between align-items-center" style="font-size: 0.82rem;">
+                            <span>${escapeHtml(nama)}</span>
+                            ${isWorking ? '<span class="badge bg-warning text-dark px-1.5 py-0.5 rounded-pill" style="font-size: 0.6rem; font-weight:700;">Sibuk</span>' : ''}
+                        </div>
+                        ${phone ? `<div style="font-size: 0.7rem; color: var(--sc-muted);">${phone}</div>` : '<div style="font-size: 0.7rem; color: var(--sc-muted);">No. telepon tidak tersedia</div>'}
+                    </div>
+                </a>`;
+                waDropdown.appendChild(li);
+            });
         }
         reportContainer.classList.remove('d-none');
     }
@@ -769,9 +858,13 @@ function renderDetailHeader(fac) {
         } else if (fac.cleanliness_status === 'perlu dibersihkan') {
             badgeContainer.className = 'sc-badge attention text-sm fw-bold';
             badgeContainer.innerHTML = `<span class="material-symbols-outlined" style="font-size: 18px">warning</span> Perlu Dibersihkan`;
+        } else if (fac.cleanliness_status === 'belum_inspeksi') {
+            badgeContainer.className = 'sc-badge text-sm fw-bold border text-muted';
+            badgeContainer.style.background = '#f1f5f9';
+            badgeContainer.innerHTML = `<span class="material-symbols-outlined" style="font-size: 18px">help</span> Belum Inspeksi`;
         } else {
             badgeContainer.className = 'sc-badge poor text-sm fw-bold';
-            badgeContainer.innerHTML = `<span class="material-symbols-outlined" style="font-size: 18px">error</span> Buruk (Risiko Kesehatan)`;
+            badgeContainer.innerHTML = `<span class="material-symbols-outlined" style="font-size: 18px">error</span> Perlu Diperbaiki`;
         }
     }
 
@@ -824,7 +917,7 @@ function renderInspectionHistory(inspections) {
 
         const airIcon = ins.ketersediaan_air === 'tersedia' ? checkIcon : crossIcon;
         const sabunIcon = ins.ketersediaan_sabun === 'tersedia' ? checkIcon : crossIcon;
-        const bauIcon = ins.bau_tidak_sedap === 'ya' ? crossIcon : checkIcon;
+        const bauIcon = ins.bau_tidak_sedap === 'ya' ? checkIcon : crossIcon;
 
         let kebersihanBadge = '';
         if (ins.kondisi_kebersihan === 'baik') {
@@ -852,7 +945,7 @@ function renderInspectionHistory(inspections) {
                     <div class="col-6 col-sm-3 d-flex align-items-center gap-1">Kebersihan: ${kebersihanBadge}</div>
                     <div class="col-6 col-sm-3 d-flex align-items-center gap-1">Air Bersih: ${airIcon}</div>
                     <div class="col-6 col-sm-3 d-flex align-items-center gap-1">Sabun: ${sabunIcon}</div>
-                    <div class="col-6 col-sm-3 d-flex align-items-center gap-1">Tidak Bau: ${bauIcon}</div>
+                    <div class="col-6 col-sm-3 d-flex align-items-center gap-1">Bau Tidak Sedap: ${bauIcon}</div>
                 </div>
                 <p class="mb-0 small fst-italic text-secondary" style="color: var(--sc-muted);">"${escapeHtml(ins.catatan) || 'Tidak ada catatan.'}"</p>
                 <div class="mt-3 pt-2 border-top d-flex align-items-center justify-content-between small" style="border-color: var(--sc-border) !important;">
@@ -904,7 +997,7 @@ function renderHealthRecommendation(status, latest) {
 
     if (status === 'bersih') {
         alertClass = 'border-start border-4 border-success text-success bg-success bg-opacity-10';
-        title = 'Status Aman & Higienis';
+        title = 'Status Higienis & Aman';
         text = 'Fasilitas umum ini memenuhi semua standar kesehatan primer. Risiko penyebaran pathogen sangat rendah. Rekomendasi: Lakukan pemeliharaan rutin seperti biasa.';
     } else if (status === 'perlu dibersihkan') {
         alertClass = 'border-start border-4 border-warning text-warning bg-warning bg-opacity-10';
@@ -915,6 +1008,10 @@ function renderHealthRecommendation(status, latest) {
             if (latest.ketersediaan_air === 'tidak') detail += 'Perbaiki suplai air bersih segera. ';
         }
         text = `Ditemukan kekurangan minor pada sarana cuci tangan. ${detail}Rekomendasi: Petugas kebersihan harus segera merespon keluhan dalam waktu maksimal 2 jam.`;
+    } else if (status === 'belum_inspeksi') {
+        alertClass = 'border-start border-4 border-secondary text-secondary bg-secondary bg-opacity-10';
+        title = 'Belum Ada Data Inspeksi';
+        text = 'Fasilitas ini belum memiliki catatan laporan inspeksi. Rekomendasi: Segera lakukan inspeksi sanitasi pertama untuk memverifikasi kondisi fasilitas ini.';
     } else {
         alertClass = 'border-start border-4 border-danger text-danger bg-danger bg-opacity-10';
         title = 'Peringatan: Risiko Kontaminasi Tinggi';
