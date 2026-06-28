@@ -59,20 +59,43 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Always fetch facilities data for navbar autocomplete (independent of page)
+    loadNavAutocomplete();
+
     // Determine current page and run appropriate handlers
     const path = window.location.pathname;
     if (path.includes('facilities.php')) {
         loadFacilitiesPage();
     } else if (path.includes('detail.php')) {
         loadDetailPage();
+    } else if (path.includes('laporan.php')) {
+        loadLaporanPage();
     } else {
         loadHomePage();
     }
 });
 
+function loadNavAutocomplete() {
+    fetchWithTimeout(`${API_BASE_URL}/fasilitas`)
+        .then(res => res.json())
+        .then(response => {
+            if (response.status === 'success' && Array.isArray(response.data)) {
+                homeFacilities = response.data;
+            }
+        })
+        .catch(() => {})
+        .finally(() => {
+            setupNavAutocomplete();
+        });
+}
+
 function goToDetail(id) {
     localStorage.setItem('selected_facility_id', id);
     window.location.href = 'detail.php';
+}
+
+function loadLaporanPage() {
+    // Form handling is done via inline script in laporan.php
 }
 
 // ----------------------------------------------------
@@ -758,6 +781,7 @@ function loadDetailPage() {
             console.error(err);
             showDetailError('Gagal memuat data. Periksa koneksi server.');
         });
+
 }
 
 function showDetailError(msg) {

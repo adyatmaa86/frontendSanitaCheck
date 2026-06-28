@@ -28,6 +28,7 @@
                 <ul class="navbar-nav ms-lg-4 me-auto mb-2 mb-lg-0">
                     <li class="nav-item"><a class="nav-link active" href="index.php">Home</a></li>
                     <li class="nav-item"><a class="nav-link" href="facilities.php">Facilities</a></li>
+                    <li class="nav-item"><a class="nav-link" href="laporan.php">Lapor</a></li>
                 </ul>
                 <div class="d-flex align-items-center gap-3 mt-2 mt-lg-0 justify-content-end">
                     <div class="search-box d-none d-lg-flex align-items-center position-relative" style="padding: 0.25rem 0.75rem; min-width: 220px;">
